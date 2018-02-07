@@ -63,7 +63,7 @@ def test_algebra():
                            ])
     interpreter.create_initial_dsm()
     print("Initialising")
-    sess.run(tf.initialize_all_variables())
+    sess.run(tf.global_variables_initializer())
     trace, _ = interpreter.execute_test_time(sess, 30)
     state = trace[-1]
     edsm.print_dsm_state_np(data_stack=state[interpreter.test_time_data_stack],

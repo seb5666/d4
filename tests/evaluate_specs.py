@@ -23,7 +23,7 @@ def evaluate_specs(stack_size, value_size, min_return_width,
         loss.load_target_stack(output_, batch)
 
     sess = tf.Session()
-    sess.run(tf.initialize_all_variables())
+    sess.run(tf.global_variables_initializer())
     result = sess.run(loss.loss, loss.current_feed_dict())
 
     if debug:

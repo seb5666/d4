@@ -119,7 +119,7 @@ class NAMSeq2Seq:
 
         self._loss = l2_loss
 
-        tf.scalar_summary('loss/train', tf.minimum(tf.constant(1000.0), self._loss))
+        tf.summary.scalar('loss/train', tf.minimum(tf.constant(1000.0), self._loss))
 
     def _add_train(self):
         if self.debug:
@@ -172,7 +172,7 @@ class NAMSeq2Seq:
         # if self.train:
         self._add_train()
         self.saver = tf.train.Saver()
-        self._summaries = tf.merge_all_summaries()
+        self._summaries = tf.summary.merge_all()
         if self.debug:
             print('Building complete')
 

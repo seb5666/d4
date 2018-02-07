@@ -86,7 +86,7 @@ class ParallelWord(AssembledWord):
         false_dsm = self.false_branch(dropped)
         true_dsm = self.true_branch(dropped)
         neg_prop = test[0:1, :]  # [1, batch_size]
-        weights = tf.concat(0, [1.0 - neg_prop, neg_prop])  # [2, batch_size]
+        weights = tf.concat(axis=0, values=[1.0 - neg_prop, neg_prop])  # [2, batch_size]
         # merge true and false branches
         merged = merge_dsms(dropped, [true_dsm, false_dsm], weights)
         return merged
@@ -135,7 +135,7 @@ def merge_tensors(weights, buffers, perm, reduction_index, name="merge_tensors")
     :return: [*, *, batch_size] tensor that is the linear combination of the input buffers.
     """
     with tf.name_scope(name):
-        stacked = tf.pack(buffers)  # [vocab_size, value_size, stack_size, batch_size]
+        stacked = tf.stack(buffers)  # [vocab_size, value_size, stack_size, batch_size]
         transposed = tf.transpose(stacked, perm)  # [value_size, stack_size, batch_size, vocab_size]
         merged = tf.reduce_sum(transposed * weights, reduction_index)
     return merged
@@ -715,7 +715,7 @@ class DSMState:
                                          [self.value_size, self.value_size * self.value_size])
                 temp = tf.matmul(tf.transpose(node1), add_reshape)
                 temp_reshape = tf.reshape(temp, [self.batch_size, self.value_size, self.value_size])
-                result = tf.transpose(tf.reshape(tf.batch_matmul(tf.expand_dims(tf.transpose(node2), 1), temp_reshape), shape=[self.batch_size, self.value_size]))
+                result = tf.transpose(tf.reshape(tf.matmul(tf.expand_dims(tf.transpose(node2), 1), temp_reshape), shape=[self.batch_size, self.value_size]))
                 return result
 
         elif symbol_match(term, sym.one_hot_sub()):
@@ -726,7 +726,7 @@ class DSMState:
                 add_reshape = tf.reshape(self.one_hot_sub_matrix, [self.value_size, self.value_size * self.value_size])
                 temp = tf.matmul(tf.transpose(node1), add_reshape)
                 temp_reshape = tf.reshape(temp, [self.batch_size, self.value_size, self.value_size])
-                result = tf.transpose(tf.reshape(tf.batch_matmul(tf.expand_dims(tf.transpose(node2), 1), temp_reshape), shape=[self.batch_size, self.value_size]))
+                result = tf.transpose(tf.reshape(tf.matmul(tf.expand_dims(tf.transpose(node2), 1), temp_reshape), shape=[self.batch_size, self.value_size]))
                 return result
 
         elif symbol_match(term, sym.one_hot_mul()):
@@ -737,7 +737,7 @@ class DSMState:
                 add_reshape = tf.reshape(self.one_hot_mul_matrix, [self.value_size, self.value_size * self.value_size])
                 temp = tf.matmul(tf.transpose(node1), add_reshape)
                 temp_reshape = tf.reshape(temp, [self.batch_size, self.value_size, self.value_size])
-                result = tf.transpose(tf.reshape(tf.batch_matmul(tf.expand_dims(tf.transpose(node2), 1), temp_reshape), shape=[self.batch_size, self.value_size]))
+                result = tf.transpose(tf.reshape(tf.matmul(tf.expand_dims(tf.transpose(node2), 1), temp_reshape), shape=[self.batch_size, self.value_size]))
                 return result
 
         elif symbol_match(term, sym.one_hot_div()):
@@ -748,7 +748,7 @@ class DSMState:
                 add_reshape = tf.reshape(self.one_hot_div_matrix, [self.value_size, self.value_size * self.value_size])
                 temp = tf.matmul(tf.transpose(node1), add_reshape)
                 temp_reshape = tf.reshape(temp, [self.batch_size, self.value_size, self.value_size])
-                result = tf.transpose(tf.reshape(tf.batch_matmul(tf.expand_dims(tf.transpose(node2), 1), temp_reshape), shape=[self.batch_size, self.value_size]))
+                result = tf.transpose(tf.reshape(tf.matmul(tf.expand_dims(tf.transpose(node2), 1), temp_reshape), shape=[self.batch_size, self.value_size]))
                 return result
 
 
@@ -1021,7 +1021,7 @@ class ObserveEncoder(DSMEncoder):
                     heap_index = elem[1]
                     heap_element = dsm.heap[:, heap_index, :]
                     to_concat.append(heap_element)  # [value_size, batch_size]
-            input_repr = tf.concat(0, to_concat, name="concat")  # [input_dim, batch_size]
+            input_repr = tf.concat(axis=0, values=to_concat, name="concat")  # [input_dim, batch_size]
             with tf.name_scope("linear"):
                 result = tf.matmul(self.weights, input_repr) + self.bias
             return result
@@ -1063,7 +1063,7 @@ class ConjoinEncoder(DSMEncoder):
                 heap_index = elem[1]
                 heap_element = dsm.heap[:, heap_index, :]
                 to_concat.append(heap_element)  # [value_size, batch_size]
-        input_repr = tf.concat(0, to_concat)  # [input_dim, batch_size]
+        input_repr = tf.concat(axis=0, values=to_concat)  # [input_dim, batch_size]
 
         arg1 = tf.expand_dims(input_repr, 0)
         arg2 = tf.expand_dims(input_repr, 1)
@@ -1149,7 +1149,7 @@ class SampleDecoder(DSMDecoder):
             log_prob = tf.log(sum)  # [batch_size]
             scaled_by_downstream_loss = log_prob * downstream_loss_sample  # [batch_size]
             losses.append(scaled_by_downstream_loss)
-        packed = tf.pack(losses)  # [num_steps, batch]
+        packed = tf.stack(losses)  # [num_steps, batch]
         return packed
 
     def __call__(self, dsm: DSMState, hidden_repr):
@@ -1167,7 +1167,7 @@ class SampleDecoder(DSMDecoder):
         reduced_attention = mass_on_decoder * attention
 
         # distribution over NOP and choices
-        dist = tf.concat(0, [1.0 - mass_on_decoder, reduced_attention])
+        dist = tf.concat(axis=0, values=[1.0 - mass_on_decoder, reduced_attention])
 
         if self.in_training:
             sampled = tf.placeholder(tf.float32, [len(self.choice_words) + 1, dsm.batch_size])
@@ -1316,7 +1316,7 @@ class ManipulateDecoder(DSMDecoder):
                         before = result.dsm.heap[:, 0:heap_index, :]
                         after = result.dsm.heap[:, heap_index + 1:, :]
                         insert = tf.expand_dims(node_value, 1)  # [value_size, 1, batch_size]
-                        result.heap = tf.concat(1, [before, insert, after])
+                        result.heap = tf.concat(axis=1, values=[before, insert, after])
 
             with_tuples = [(key, tuple(value)) for key, value in self.word.indices_in_batches.items()]
             indices_in_batches = frozenset(with_tuples)

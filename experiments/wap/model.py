@@ -91,17 +91,17 @@ class AlgebraD4Model(object):
             outputs, _ = tf.nn.bidirectional_dynamic_rnn(cell_fw, cell_bw, inputs,
                                                          dtype=tf.float32,
                                                          sequence_length=self._pl_text_len)
-            outputs = tf.concat(2, outputs)
+            outputs = tf.concat(axis=2, values=outputs)
 
         with tf.name_scope("output"):
-            outputs = tf.unpack(outputs)
+            outputs = tf.unstack(outputs)
             with tf.name_scope("argument_embeddings"):
-                num_positions = tf.unpack(self._pl_num_pos)
+                num_positions = tf.unstack(self._pl_num_pos)
                 # L[batch_size] of [max_args x 2 vector_size]
                 arg_embeddings = [tf.gather(outputs[i], num_positions[i])
                                   for i in range(self.batch_size)]
                 # [batch_size x max_args x 2 vector_size]
-                self._arg_emb = tf.pack(arg_embeddings)
+                self._arg_emb = tf.stack(arg_embeddings)
 
             with tf.name_scope("question_embedding"):
                 # last output vectors (per direction) concatenated into a question_embedding
@@ -111,10 +111,10 @@ class AlgebraD4Model(object):
                     bi_end = tf.gather(outputs[i], self._pl_text_len[i] - 1)
                     end1 = tf.slice(bi_end, [0], [10])
                     end2 = tf.slice(bi_start, [10], [-1])
-                    q = tf.concat(0, [end1, end2])
+                    q = tf.concat(axis=0, values=[end1, end2])
                     question_embedding.append(q)
                 # [batch_size x 2 vector_size]
-                self._q_emb = tf.pack(question_embedding)
+                self._q_emb = tf.stack(question_embedding)
 
     def _assemble_heap(self):
         with tf.name_scope("heap_assembly"):
@@ -144,7 +144,7 @@ class AlgebraD4Model(object):
             with tf.name_scope("heap"):
                 # [2 vector_size x heap_size x batch_size]
                 self._init_heap = tf.concat(
-                    1, [empty, q, arg, empty, numbers] + [empty] * (self.value_size - 9))
+                    axis=1, values=[empty, q, arg, empty, numbers] + [empty] * (self.value_size - 9))
 
     def _add_nam(self):
         self.interpreter = SimpleInterpreter(stack_size=self.stack_size,
@@ -164,7 +164,7 @@ class AlgebraD4Model(object):
         # self._dsm_loss = L2Loss(trace[-1], self.interpreter)
         self._dsm_loss = CrossEntropyLoss(trace[-1], self.interpreter)
         self._loss = self._dsm_loss.loss
-        tf.scalar_summary('loss_per_batch', tf.minimum(1000.0, self._loss))
+        tf.summary.scalar('loss_per_batch', tf.minimum(1000.0, self._loss))
 
     def _add_train(self):
         with tf.name_scope("optimiser"):
@@ -231,7 +231,7 @@ class AlgebraD4Model(object):
             self._add_train()
         print('Building complete')
 
-        self._summaries = tf.merge_all_summaries()
+        self._summaries = tf.summary.merge_all()
 
     def _build_birnn_feed(self, data_batch):
         feed = {

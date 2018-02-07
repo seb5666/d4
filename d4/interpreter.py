@@ -975,7 +975,7 @@ def main():
 
     # do tensorflow stuff
     sess = tf.Session()
-    sess.run(tf.initialize_all_variables())
+    sess.run(tf.global_variables_initializer())
 
     print("Code")
     print(sess.run(edsm.pretty_print_buffer(trace[0].code),

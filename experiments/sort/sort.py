@@ -182,10 +182,10 @@ def main(_):
 
         if use_summary:
             print(' ..creating summary writer')
-            summary_writer = tf.train.SummaryWriter(SUMMARY_LOG_DIR + "/" + FLAGS.id,
+            summary_writer = tf.summary.FileWriter(SUMMARY_LOG_DIR + "/" + FLAGS.id,
                                                     tf.get_default_graph())
 
-        sess.run(tf.initialize_all_variables())
+        sess.run(tf.global_variables_initializer())
 
         # run max_epochs times
 

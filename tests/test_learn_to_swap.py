@@ -25,7 +25,7 @@ def test_learn_to_swap():
     opt_op = opt.minimize(l2_loss)
 
     sess = tf.Session()
-    sess.run(tf.initialize_all_variables())
+    sess.run(tf.global_variables_initializer())
 
     # presampled = [np.random.randint(0, 10) for i in range(0, 10)]
     xs = [i for i in range(0, 10)]

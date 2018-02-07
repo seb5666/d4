@@ -223,7 +223,7 @@ class L2Loss(DSMLoss):
 
             self.l2_regulariser = 0.0
             if len(self.slot_variables) > 0:
-                self.l2_regulariser = tf.nn.l2_loss(tf.concat(0, self.slot_variables),
+                self.l2_regulariser = tf.nn.l2_loss(tf.concat(axis=0, values=self.slot_variables),
                                                     name="l2_regulariser")
 
             # wonky

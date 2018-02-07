@@ -69,8 +69,8 @@ def main(argv):
         #     # accuracy, partial_accuracy = model.run_eval_step(sess, dataset_dev)
         #     exit(0)
 
-        summary_writer = tf.train.SummaryWriter("./tmp/summaries/wap", tf.get_default_graph())
-        sess.run(tf.initialize_all_variables())
+        summary_writer = tf.summary.FileWriter("./tmp/summaries/wap", tf.get_default_graph())
+        sess.run(tf.global_variables_initializer())
 
         for epoch in range(50):
             epoch_count.assign_add(1)
