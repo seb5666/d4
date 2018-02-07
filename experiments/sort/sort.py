@@ -11,7 +11,7 @@ import logging
 # logging.basicConfig(level=logging.DEBUG)
 import time
 
-np.set_printoptions(linewidth=20000, precision=2, suppress=True)
+np.set_printoptions(linewidth=20000, precision=3, suppress=True)
 
 SUMMARY_LOG_DIR = "./tmp/sort/summaries"
 
@@ -47,7 +47,7 @@ tf.app.flags.DEFINE_boolean("save_summary", True, "Save summary files.")
 
 tf.app.flags.DEFINE_string("sketch", "./experiments/sort/sketch_compare.d4", "Sketch.")
 
-tf.app.flags.DEFINE_string("data", './data/bubble/train2_test64/', "Data.")
+tf.app.flags.DEFINE_string("data", './data/sort/train_test_len/train2_test64/', "Data.")
 
 
 def print_flags(flags):

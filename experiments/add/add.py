@@ -55,10 +55,10 @@ tf.app.flags.DEFINE_float("grad_noise_eta", 0.01, "Gradient noise scale.")
 tf.app.flags.DEFINE_float("grad_noise_gamma", 0.55, "Gradient noise gamma.")
 
 tf.app.flags.DEFINE_string("dataset",
-                           "data/add/train_len/train1_test4",
+                           "./data/add/train_test_len/train8_test64/",
                            "unique id for summary purposes")
 
-tf.app.flags.DEFINE_string("sketch", "adder_choose", "sketch")
+tf.app.flags.DEFINE_string("sketch", "./experiments/add/sketch_manipulate.d4", "sketch")
 
 tf.app.flags.DEFINE_boolean("save_summary", True, "Save summary files.")
 
@@ -82,8 +82,9 @@ TestParams = namedtuple("TestParams", "stack_size num_steps")
 
 def main(_):
     dataset_path = FLAGS.dataset
+    print('Dataset path:', dataset_path)
+
     datasets = load_data(dataset_path)
-    print('dataset path:', dataset_path)
 
     def load_scaffold_from_file(filename):
         with open(filename, "r") as f:
@@ -243,4 +244,7 @@ def main(_):
 
 
 if __name__ == "__main__":
+    # import logging
+    # logger = logging.getLogger()
+    # logger.setLevel(10)
     tf.app.run()
