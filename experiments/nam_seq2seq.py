@@ -216,8 +216,8 @@ class NAMSeq2Seq:
             # set up the input/target
             for batch_elem in range(current_batch_size):
                 index = batch_no * self.batch_size + batch_elem
-                # print(dataset.input_seq[index])
-                # print(dataset.target_seq[index])
+
+                print("input: {}\toutput: {}".format(dataset.input_seq[index], dataset.target_seq[index]))
 
                 self.interpreter.test_time_load_stack(dataset.input_seq[index], batch_elem)
                 self._dsm_loss.load_target_stack(dataset.target_seq[index], batch_elem)
@@ -265,3 +265,30 @@ class NAMSeq2Seq:
         partial_accuracy = partial_correct / partial_total if partial_total > 0 else 0
 
         return accuracy, partial_accuracy
+
+    def evaluate(self, sess, input_seq, target_seq, max_steps):
+
+        print("Input seq: {}".format(input_seq))
+        print("Target seq: {}".format(target_seq))
+
+        self.interpreter.test_time_load_stack(input_seq, 0)
+
+        #run da thing
+        test_trace, _ = self.interpreter.execute_test_time(
+            sess, max_steps, use_argmax_pointers=self.argmax_pointers,
+            use_argmax_stacks=self.argmax_stacks, debug=False, save_only_last_step=True)
+
+        # pull out stacks
+        final_state = test_trace[-1]
+        data_stacks = final_state[self.interpreter.test_time_data_stack]
+        data_stack_pointers = final_state[self.interpreter.test_time_data_stack_pointer]
+
+        # argmax everything !!
+        print("data_stack_pointer: {}".format(data_stack_pointers))
+        pointer = np.argmax(data_stack_pointers[:, 0])
+        print("Pointer: {}".format(pointer))
+
+        stack_output = data_stacks[:, 0:pointer + 1, 0]
+        print("Stack output:\n{}".format(stack_output))
+        result = np.argmax(stack_output, 0)
+        return result
