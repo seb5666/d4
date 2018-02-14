@@ -55,7 +55,7 @@ tf.app.flags.DEFINE_float("grad_noise_eta", 0.01, "Gradient noise scale.")
 tf.app.flags.DEFINE_float("grad_noise_gamma", 0.55, "Gradient noise gamma.")
 
 tf.app.flags.DEFINE_string("dataset",
-                           "./data/add/train_test_len/train8_test64/",
+                           "./data/add/train_test_len/train4_test8/",
                            "unique id for summary purposes")
 
 tf.app.flags.DEFINE_string("sketch", "./experiments/add/sketch_manipulate.d4", "sketch")
@@ -67,6 +67,7 @@ def print_flags(flags):
     print("Flag values")
     for k, v in flags.__dict__['__flags'].items():
         print('  ', k, ':', v)
+
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -111,6 +112,7 @@ def main(_):
     test_seq_len = dataset_test.input_seq[:, -1].max()
     dev_seq_len = dataset_dev.input_seq[:, -1].max()
 
+    # TODO: Figure out where these magic numbers come from
     train_num_steps = train_seq_len * 8 + 6
     test_num_steps = test_seq_len * 8 + 6
     dev_num_steps = dev_seq_len * 8 + 6
@@ -163,19 +165,6 @@ def main(_):
 
     model.build_graph()
 
-    # with tf.Session() as sess:
-    #    model.load_model(sess, "./tmp/add/checkpoints/{0}/".format(FLAGS.id))
-    #    print('tst')
-    #    # dataset_test = load_single_dataset('./data/add/{0}/test.txt'.format(FLAGS.id))
-    #    def num_steps(x):
-    #        return x * 8 + 6
-    #
-    #    accuracy, partial_accuracy = model.run_eval_step(
-    #        sess, dataset_test, num_steps(dataset_test.input_seq[:, -1]. max()))
-    #    print("{0}\t{1}\t{2}".format('test', accuracy, partial_accuracy))
-    #
-    # exit(0)
-
     # where to save checkpoints for test set calculation
     directory_save = "./tmp/add/checkpoints/{0}/".format(FLAGS.id)
 
@@ -215,8 +204,9 @@ def main(_):
             if epoch % FLAGS.eval_every == 0:
 
                 accuracy, partial_accuracy = model.run_eval_step(sess, dataset_dev, dev_num_steps)
+
                 print("dev\t{0}\ta:{1}\tpa:{2}".format(epoch, accuracy, partial_accuracy))
-                
+
                 if partial_accuracy > best:
                     model.save_model(sess, directory_save + "model.checkpoint",
                                      global_step=global_step)
@@ -225,11 +215,6 @@ def main(_):
                     _acc, _p_acc = model.run_eval_step(sess, dataset_test, test_num_steps)
                     print("test\t{0}\ta:{1}\tpa:{2}".format(epoch, _acc, _p_acc))
                     exit(0)
-
-                # accuracy, partial_accuracy = model.run_eval_step(
-                #     sess, datasets.test, test_stack_size)
-
-                # print("test {0}\t{1}\t{2}\t{3}".format(epoch, 'x', accuracy, partial_accuracy))
 
                 summary_acc = tf.Summary(
                     value=[tf.Summary.Value(tag="accuracy/accuracy", simple_value=accuracy)])

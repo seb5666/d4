@@ -266,10 +266,9 @@ class NAMSeq2Seq:
 
         return accuracy, partial_accuracy
 
-    def evaluate(self, sess, input_seq, target_seq, max_steps):
+    def evaluate(self, sess, input_seq, max_steps):
 
         print("Input seq: {}".format(input_seq))
-        print("Target seq: {}".format(target_seq))
 
         self.interpreter.test_time_load_stack(input_seq, 0)
 
