@@ -570,7 +570,6 @@ class SimpleInterpreter:
                 print("Step {}".format(step))
                 edsm.print_dsm_state_np(data_stack, data_stack_pointer, return_stack,
                                         return_stack_pointer, pc=pc, interpreter=self)
-        # print(step)
         if save_only_last_step:
             trace.append(copy.copy(feed_dict))
 

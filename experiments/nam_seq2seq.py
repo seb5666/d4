@@ -46,6 +46,7 @@ class NAMSeq2Seq:
         self.init_weight_stddev = d4_params.init_weight_stddev
 
         # train params
+        self.train = train_params.train
         self.train_num_steps = train_params.num_steps
         self.learning_rate = train_params.learning_rate
         self.max_grad_norm = train_params.max_grad_norm
@@ -169,8 +170,8 @@ class NAMSeq2Seq:
         if self.debug:
             print("Building graph...")
         self._add_nam()
-        # if self.train:
-        self._add_train()
+        if self.train:
+            self._add_train()
         self.saver = tf.train.Saver()
         self._summaries = tf.summary.merge_all()
         if self.debug:
@@ -266,16 +267,14 @@ class NAMSeq2Seq:
 
         return accuracy, partial_accuracy
 
-    def evaluate(self, sess, input_seq, max_steps):
-
-        print("Input seq: {}".format(input_seq))
+    def evaluate(self, sess, input_seq, max_steps, debug=False):
 
         self.interpreter.test_time_load_stack(input_seq, 0)
 
         #run da thing
         test_trace, _ = self.interpreter.execute_test_time(
             sess, max_steps, use_argmax_pointers=self.argmax_pointers,
-            use_argmax_stacks=self.argmax_stacks, debug=False, save_only_last_step=True)
+            use_argmax_stacks=self.argmax_stacks, debug=debug, save_only_last_step=True)
 
         # pull out stacks
         final_state = test_trace[-1]
@@ -283,11 +282,10 @@ class NAMSeq2Seq:
         data_stack_pointers = final_state[self.interpreter.test_time_data_stack_pointer]
 
         # argmax everything !!
-        print("data_stack_pointer: {}".format(data_stack_pointers))
+        # print("data_stack_pointer: {}".format(data_stack_pointers))
         pointer = np.argmax(data_stack_pointers[:, 0])
-        print("Pointer: {}".format(pointer))
 
         stack_output = data_stacks[:, 0:pointer + 1, 0]
-        print("Stack output:\n{}".format(stack_output))
+        # print("Stack output:\n{}".format(stack_output))
         result = np.argmax(stack_output, 0)
         return result
