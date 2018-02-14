@@ -31,7 +31,6 @@ def generate_episode(env, policy):
 def compute_returns(rewards):
     return np.full(len(rewards), fill_value=rewards[-1])
 
-# TODO: Update policy
 
 
 env = gym.make('Blackjack-v0')
@@ -43,5 +42,6 @@ while True:
     for s, a, r in zip(states, actions, rewards):
         print(s,a,r)
     returns = compute_returns(rewards)
+    print(returns)
     break
     update_policy(policy, episode)

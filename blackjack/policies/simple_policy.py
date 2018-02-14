@@ -3,8 +3,8 @@ from experiments.nam_seq2seq import NAMSeq2Seq
 import os
 import tensorflow as tf
 from .policy import Policy
-SUMMARY_LOG_DIR = "../tmp/simple_policy/summaries"
 
+SUMMARY_LOG_DIR = "../tmp/simple_policy/summaries"
 
 class SimplePolicy(Policy):
 
@@ -46,7 +46,7 @@ class SimplePolicy(Policy):
                                  min_return_width=min_return_width,
                                  init_weight_stddev=init_weight_stddev)
 
-        train = False  # No parameters to train for now!
+        train = True
         learning_rate = 0.01
         num_steps = 3  # More magic numbers...
         max_grad_norm = 1.0  # Clip gradients to this norm
@@ -77,8 +77,13 @@ class SimplePolicy(Policy):
         self.model.build_graph()
 
         with tf.Session() as sess:
-            pass
-            #sess.run(tf.global_variables_initializer())
+            summary_writer = tf.summary.FileWriter(SUMMARY_LOG_DIR + "/" + "simple_policy",
+                                                   tf.get_default_graph())
+            print(tf.GraphKeys.TRAINABLE_VARIABLES)
+            for i in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES):
+                print(i) # i.name if you want just a name
+            print("Initializing global tf variables...")
+            sess.run(tf.global_variables_initializer())
 
     def __call__(self, state, **kwargs):
         player_sum = state[0]
@@ -96,7 +101,8 @@ class SimplePolicy(Policy):
             action = result[-1]
             return action
 
-    def _load_scaffold_from_file(self, filename):
+    @staticmethod
+    def _load_scaffold_from_file(filename):
         with open(filename, "r") as f:
             scaffold = f.read()
         return scaffold

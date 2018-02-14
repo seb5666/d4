@@ -959,6 +959,8 @@ class StaticEncoder(DSMEncoder):
         # self.bias = tf.Variable(tf.zeros([output_dim, 1]))
         # self.bias = tf.Variable([[10.],[-10.]])
         # TODO experiment with variance
+        # self.bias = tf.get_variable(name="bias", shape=[output_dim, 1], initializer=tf.random_normal_initializer(stddev=init_weight_stddev))
+        print("Self.bias created")
         self.bias = tf.Variable(tf.random_normal([output_dim, 1],
                                                  stddev=init_weight_stddev), name="bias")
         # self.bias = tf.Variable(tf.ones([output_dim, 1]), name="bias")
@@ -1001,6 +1003,9 @@ class ObserveEncoder(DSMEncoder):
                 self.input_dim += return_width
 
         # TODO experiment with variance
+        # self.weights = tf.get_variable(name="weights",
+        #                               shape=[self.output_dim, self.input_dim],
+        #                               initializer=tf.random_normal_initializer(stddev=init_weight_stddev))
         self.weights = tf.Variable(tf.random_normal(
             [self.output_dim, self.input_dim], stddev=init_weight_stddev), name="weights")
 
