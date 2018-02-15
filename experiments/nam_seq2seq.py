@@ -187,7 +187,6 @@ class NAMSeq2Seq:
         self._summaries = tf.summary.merge_all()
         if self.debug:
             print('Building complete')
-        self._add_reinforce_loss()
 
     def run_train_step(self, sess, data_batch: SeqDataset, epoch):
 
@@ -301,45 +300,3 @@ class NAMSeq2Seq:
         # print("Stack output:\n{}".format(stack_output))
         result = np.argmax(stack_output, 0)
         return result
-
-    def _add_reinforce_loss(self):
-        self.traces = self.interpreter.execute(self.train_num_steps)
-        # pull out stacks
-        self.data_stacks = [state.data_stack for state in self.traces]
-        self.data_stack_pointers = [state.data_stack_pointer for state in self.traces]
-
-        self.reinforce_loss = ReinforceLoss(self.traces[-1], self.interpreter)
-
-        # TODO: experiment with initial learning rate
-        optimizer = tf.train.AdamOptimizer(self.learning_rate)
-
-        # We want to maximise the loss, hence multiply by -1
-        self.train_op = optimizer.minimize(-1 * self.reinforce_loss.loss)
-
-    def evaluate_2(self, sess, input_seq, num_actions = 2, debug=False):
-
-        # TODO: handle multiple batches...
-        # # feed the stack and the target stack
-        # for j in range(self.batch_size):
-        #     self.interpreter.load_stack(input_seq[j], j, last_float=False)
-
-        self.interpreter.load_stack(input_seq, 0)
-
-        # TODO: don't use dsm_loss to generate feed_dict
-        feed_in = self._dsm_loss.current_feed_dict()
-
-        traces = self.interpreter.execute(self.train_num_steps)
-        final_dsm = traces[-1]
-        final_stack = final_dsm.data_stack
-
-        final_stack_ = sess.run(final_stack, feed_in)
-        probabilites = final_stack_[: num_actions,0,0]
-        return probabilites
-
-    def update_policy(self, sess, input_seq, action, total_reward):
-        self.interpreter.load_stack(input_seq, 0)
-
-        self.reinforce_loss.load_action_and_rewards([action], [total_reward])
-        feed_in = self.reinforce_loss.current_feed_dict()
-
-        sess.run(self.train_op, feed_in)
