@@ -229,7 +229,8 @@ class NAMSeq2Seq:
             for batch_elem in range(current_batch_size):
                 index = batch_no * self.batch_size + batch_elem
 
-                print("input: {}\toutput: {}".format(dataset.input_seq[index], dataset.target_seq[index]))
+                if self.debug:
+                    print("input: {}\toutput: {}".format(dataset.input_seq[index], dataset.target_seq[index]))
 
                 self.interpreter.test_time_load_stack(dataset.input_seq[index], batch_elem)
                 self._dsm_loss.load_target_stack(dataset.target_seq[index], batch_elem)
