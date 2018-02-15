@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
         print("Generating episodes...")
         iteration = 0
-        max_iters = 3000
+        max_iters = 10000
 
         if show_plots:
             # visualize_policy(policy)
@@ -100,11 +100,11 @@ if __name__ == "__main__":
         if show_plots:
             params = np.array(params)
             plt.figure()
-            plt.plot(params[:, 0], color='r', label="weight 1")
-            plt.plot(params[:, 1], color='b', label="weight 2")
+            for weight in range(params.shape[1]):
+                plt.plot(params[:, weight], label="weight {}".format(weight))
             plt.legend()
-            # plt.plot(params[:, 2], color='g')
             plt.show()
+
             visualize_policy(policy)
             plt.figure()
             plt.plot(np.arange(len(average_rewards)), average_rewards)
