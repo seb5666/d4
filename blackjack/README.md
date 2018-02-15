@@ -1,7 +1,7 @@
 # Differentiable symbolic policy for black
 
 I have implemented the REINFORCE algorithm [link](https://www.cs.cmu.edu/afs/cs/project/jair/pub/volume4/kaelbling96a-html/node37.html)
-to train the policy (see sketches/simple_policy.py).
+to train the policy (The policy is implemented in the file sketches/simple_policy.d4).
 
 I haven't optimised the hyper-parameters much, but the current ones seem to work, making the policy converge on choosing 14 as a threshold. 
 The policy has the form
@@ -11,7 +11,7 @@ if sum < threshold:
  else:
     stick
 ```
-where the threshold is learned by the very simple neural network. In this case it is really just learning weights that are then 
+where the `threshold` is learned by the very simple neural network. In this case it is really just learning weights that are then 
 softmaxed to produce probabilities for each threshold. The comparison is then done in a soft way, using the differentiable stack machine
 which gives a probability distribution over the two actions: hit and stick.
 
@@ -29,7 +29,7 @@ In addition, you will need the following libraries:
 - matplotlib
     ```bash
     pip install matplotlib
-    ```i
+    ```
 - Funcparserlib
     ```bash
     pip install funcparserlib
