@@ -26,8 +26,10 @@ def visualize_policy(policy):
         # plt.xlim([0, 21])
         plt.xticks(np.arange(1, 11))
         plt.yticks(np.arange(21))
-        plt.imshow(actions, cmap='hot')
+        plt.imshow(actions, cmap=plt.cm.Blues)
 
+    print("Usable ace policy")
+    print(usable_ace_actions)
     plot_policy(usable_ace_actions, title="Usable ace policy")
     plot_policy(non_usable_ace_actions, title="No usable ace policy")
     plt.show()

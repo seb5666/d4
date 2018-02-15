@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from blackjack.policies.simple_policy import SimplePolicy
 from blackjack.policies.policy_utils import visualize_policy
 
+
 # generate episode in env iusing the current policy
 def generate_episode(env, policy):
     states = []
@@ -52,13 +53,15 @@ with tf.Session() as sess:
 
     print("Generating episodes...")
     iteration = 0
-    max_iters = 10000
+    max_iters = 3000
 
     if show_plots:
-        visualize_policy(policy)
+        # visualize_policy(policy)
+        pass
 
     R = []
     average_rewards = []
+    params = []
     while True and iteration < max_iters:
         iteration += 1
         (states, actions, rewards) = generate_episode(env, policy)
@@ -70,24 +73,34 @@ with tf.Session() as sess:
         if len(R) > 100:
             R = R[1:]
 
-        if iteration % 1000 == 0:
+        if iteration % 100 == 0:
             average_return = 0
-            sim_length = 100
+            sim_length = 500
             for j in range(sim_length):
                 (states, actions, rewards) = generate_episode(env, policy)
                 returns = compute_returns(rewards)
                 average_return += returns[0]
             average_return /= sim_length
             average_rewards.append(average_return)
-            print("Average return after {} iterations over the last 100 episodes: {}".format(iteration, average_return))
+            print("Average return after {} iterations over {} episodes: {}".format(iteration, sim_length, average_return))
+            tvars_ = sess.run(tvars)
+            tvars_ = np.array(tvars_).squeeze()
+            params.append(tvars_)
+            print("Parameters: {}".format(tvars_.squeeze()))
 
-    tvars = tf.trainable_variables()
     tvars_ = sess.run(tvars)
     print("Final parameters: {}".format(np.array(tvars_).squeeze()))
 
     print("Average rewards:\n{}".format(average_rewards))
-    
+
     if show_plots:
+        params = np.array(params)
+        plt.figure()
+        plt.plot(params[:, 0], color='r', label="weight 1")
+        plt.plot(params[:, 1], color='b', label="weight 2")
+        plt.legend()
+        # plt.plot(params[:, 2], color='g')
+        plt.show()
         visualize_policy(policy)
         plt.figure()
         plt.plot(np.arange(len(average_rewards)), average_rewards)

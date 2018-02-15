@@ -316,42 +316,25 @@ class NAMSeq2Seq:
         # We want to maximise the loss, hence multiply by -1
         self.train_op = optimizer.minimize(-1 * self.reinforce_loss.loss)
 
-    def evaluate_2(self, sess, input_seq, debug=False):
+    def evaluate_2(self, sess, input_seq, num_actions = 2, debug=False):
+
+        # TODO: handle multiple batches...
+        # # feed the stack and the target stack
+        # for j in range(self.batch_size):
+        #     self.interpreter.load_stack(input_seq[j], j, last_float=False)
 
         self.interpreter.load_stack(input_seq, 0)
 
-        self.reinforce_loss.load_action_and_rewards([1],[1])
-        feed_in = self.reinforce_loss.current_feed_dict()
+        # TODO: don't use dsm_loss to generate feed_dict
+        feed_in = self._dsm_loss.current_feed_dict()
 
-        data_stacks_, data_stack_pointers_, action_prob_, log_action_prob_,  reinforce_loss_, train_op_ = \
-            sess.run([self.data_stacks,
-                      self.data_stack_pointers,
-                      self.reinforce_loss.action_prob,
-                      self.reinforce_loss.log_action_prob,
-                      self.reinforce_loss.loss,
-                      self.train_op],
-                     feed_in)
+        traces = self.interpreter.execute(self.train_num_steps)
+        final_dsm = traces[-1]
+        final_stack = final_dsm.data_stack
 
-        print("Action probability: {}".format(action_prob_))
-        print("Log action probability: {}".format(log_action_prob_))
-        print("Reinforce loss: {}".format(reinforce_loss_))
-
-        # print("Data stack")
-        # for i, (data_stack_ , data_stack_pointer_) in enumerate(zip(data_stacks_, data_stack_pointers_)):
-        #     print(i)
-        #     print(data_stack_pointer_.squeeze())
-        #     print(data_stack_.squeeze())
-
-
-
-        # argmax everything !!
-        # pointer = np.argmax(data_stack_pointer[:, 0])
-        # print("pointer: {}".format(pointer))
-        # stack_output = data_stack[:, 0:pointer + 1, 0]
-        # print("Stack output:\n{}".format(stack_output))
-        # result = np.argmax(stack_output, 0)
-
-        return action_prob_
+        final_stack_ = sess.run(final_stack, feed_in)
+        probabilites = final_stack_[: num_actions,0,0]
+        return probabilites
 
     def update_policy(self, sess, input_seq, action, total_reward):
         self.interpreter.load_stack(input_seq, 0)

@@ -1,7 +1,9 @@
 from collections import namedtuple
 from experiments.nam_seq2seq import NAMSeq2Seq
-import os
+
 import tensorflow as tf
+import numpy as np
+
 from blackjack.policies.policy import Policy
 
 SUMMARY_LOG_DIR = "../tmp/simple_policy/summaries"
@@ -53,10 +55,11 @@ FLAGS = tf.app.flags.FLAGS
 
 class SimplePolicy(Policy):
 
-    def __init__(self, sketch_path, sess, debug=False):
+    def __init__(self, sketch_path, sess, debug=False, num_actions =2):
         self.sketch = self._load_scaffold_from_file(sketch_path)
         self.sess = sess
         self.debug = debug
+        self.num_actions  = num_actions
         d4InitParams = namedtuple(
             "d4InitParams", "stack_size value_size batch_size min_return_width init_weight_stddev")
 
@@ -84,7 +87,7 @@ class SimplePolicy(Policy):
 
         # Stddev for the initialization of the slot weights
         # Note: A normal distribution is used to initialize the weights.
-        init_weight_stddev = 1.0
+        init_weight_stddev = 0.1
 
         self.d4_params = d4InitParams(stack_size=stack_size,
                                  value_size=value_size,
@@ -93,7 +96,7 @@ class SimplePolicy(Policy):
                                  init_weight_stddev=init_weight_stddev)
 
         train = True
-        learning_rate = 0.01
+        learning_rate = 0.001
         num_steps = 2  # More magic numbers... (really because there are only 2 operations to perform every time the machine is run..)
         max_grad_norm = 1.0  # Clip gradients to this norm
         grad_noise_eta = 0.01  # Gradient noise scale
@@ -135,12 +138,13 @@ class SimplePolicy(Policy):
         if self.debug:
             print("running model on input sequence {}...".format(input_seq))
 
-        result = self.model.evaluate(sess=self.sess, input_seq=input_seq, max_steps=self.train_params.num_steps)
+        # TODO this should not be an argmaxed result!
+        probabilities = self.model.evaluate_2(sess=self.sess, input_seq=input_seq, num_actions=self.num_actions)
+        sample_action = np.argmax(np.random.multinomial(1, probabilities))
         if self.debug:
-            print("Result: {}".format(result))
-
-        action = result[-1]
-        return action
+            print("Probabilities: {}".format(probabilities))
+            print("Sampled action: {}".format(sample_action))
+        return sample_action
 
     # Perform a single step of optimisation in the REINFORCE algorithm
     def update_policy(self, state, action, total_reward):
@@ -169,7 +173,7 @@ if __name__ == "__main__":
 
         input_seq = [14]
         results = []
-        for i in range(1000):
+        for i in range(1):
             print(i)
             r = policy.model.evaluate_2(sess=sess, input_seq=input_seq)
             results.append(r)
