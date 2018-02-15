@@ -273,7 +273,8 @@ class SimpleInterpreter:
                  test_time_stack_size=None,
                  collapse_forth=True,
                  merge_pipelines_=False,
-                 init_weight_stddev=1.0):
+                 init_weight_stddev=1.0,
+                 temperature=0.0):
 
         self.merge_pipelines = merge_pipelines_
         self.collapse_forth = collapse_forth
@@ -283,6 +284,7 @@ class SimpleInterpreter:
         self.stack_size = stack_size
         self.batch_size = batch_size
         self.min_return_width = min_return_width
+        self.temperature = temperature
 
         with tf.name_scope("interpreter_init"):
             with tf.name_scope("code_elements"):
@@ -570,6 +572,7 @@ class SimpleInterpreter:
                 print("Step {}".format(step))
                 edsm.print_dsm_state_np(data_stack, data_stack_pointer, return_stack,
                                         return_stack_pointer, pc=pc, interpreter=self)
+        # print(step)
         if save_only_last_step:
             trace.append(copy.copy(feed_dict))
 
@@ -922,7 +925,8 @@ class SimpleInterpreter:
                 vocab=vocab,
                 labels=self.labels_placeholder,
                 constants=self.constants_placeholder,
-                do_normalise_pointer=self.do_normalise_pointer
+                do_normalise_pointer=self.do_normalise_pointer,
+                temperature=self.temperature
             )
 
         # used for execution at test time.

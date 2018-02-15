@@ -248,3 +248,59 @@ class L2Loss(DSMLoss):
 
     def load_target_stack(self, values, batch=0):
         super().load_target_stack(values, batch)
+
+# Assumes that the probabilities for each actions are at the bottom of the data stack
+class ReinforceLoss(DSMLoss):
+    """
+        Cross entropy loss on DSM
+        """
+
+    def __init__(self, dsm: edsm.DSMState, interpreter):
+        """
+        """
+        with tf.name_scope("reinforce_loss"):
+            super().__init__(dsm, interpreter)
+
+            # Array of returns achieved in each batch by taking the corresponding action below
+            self.total_returns = np.zeros(self.dsm.batch_size, dtype=np.float32)
+            self.total_returns_placeholder = tf.placeholder(dtype=tf.float32, shape=[self.dsm.batch_size], name="total_return")
+
+            # Array containing the action indexes taken by the agent
+            self.actions = np.zeros(self.dsm.batch_size, dtype=np.int32)
+            self.actions_placeholder = tf.placeholder(dtype=tf.int32, shape=[self.dsm.batch_size], name="actions")
+
+            # Index 0 because we assume action probabilities are at the bottom...
+            print("Stack shape: {}".format(self.dsm.data_stack[:,0].get_shape()))
+
+            # Get action probability from stack
+            self.action_prob = tf.squeeze(tf.gather(self.dsm.data_stack[:,0], [self.actions_placeholder]))
+            print("Action prob shape: {}".format(self.action_prob.get_shape()))
+
+            self.log_action_prob = tf.log(self.action_prob, "action_logit")
+
+            self.loss = self.total_returns_placeholder * self.log_action_prob
+            print("Loss shape: {}".format(self.loss.get_shape()))
+
+    def current_feed_dict(self, external_feed_dict=None):
+        """
+        Builds up the feed_dict for the loss on top of the interpreter's feed_dict
+
+        :return: feed_dict for the computational graph
+        """
+        result = self.interpreter.current_feed_dict(external_feed_dict)
+        result[self.data_stack_mask_placeholder] = self.data_stack_mask
+        result[self.data_stack_pointer_target_placeholder] = self.data_stack_pointer_target
+        result[self.data_stack_target_placeholder] = self.data_stack_target
+        result[self.pc_target_placeholder] = self.pc_target
+
+        result[self.actions_placeholder] = self.actions
+        result[self.total_returns_placeholder] = self.total_returns
+
+        return result
+
+    def load_target_stack(self, values, batch=0):
+        super().load_target_stack(values, batch)
+
+    def load_action_and_rewards(self, actions, total_returns):
+        self.actions = actions
+        self.total_returns = total_returns

@@ -4,13 +4,13 @@ import numpy as np
 import tensorflow as tf
 
 from experiments.data import SeqDataset
-from d4.dsm.loss import CrossEntropyLoss
+from d4.dsm.loss import CrossEntropyLoss, ReinforceLoss
 from d4.interpreter import SimpleInterpreter
 
 # logging.basicConfig(level=logging.DEBUG)
 
 
-np.set_printoptions(linewidth=20000, precision=2, suppress=True)
+np.set_printoptions(linewidth=20000, precision=5, suppress=True)
 
 
 d4InitParams = namedtuple(
@@ -34,7 +34,8 @@ class NAMSeq2Seq:
                  adjust_min_return_width=True,
                  use_slot_l2_regularizer=False,
                  argmax_pointers=False,
-                 argmax_stacks=False
+                 argmax_stacks=False,
+                 temperature=0.0
                  ):
 
         self.sketch = sketch
@@ -72,6 +73,8 @@ class NAMSeq2Seq:
         if self.adjust_min_return_width:
             self.min_return_width += self.stack_size
 
+        self.temperature = temperature
+
         # TODO isolate the l2 regulariser parameter
         self.use_slot_l2_regularizer = use_slot_l2_regularizer
 
@@ -92,7 +95,8 @@ class NAMSeq2Seq:
                                              value_size=self.value_size,
                                              min_return_width=self.min_return_width,
                                              batch_size=self.batch_size,
-                                             init_weight_stddev=self.init_weight_stddev
+                                             init_weight_stddev=self.init_weight_stddev,
+                                             temperature=self.temperature
                                              )
 
         if self.debug:
@@ -122,6 +126,8 @@ class NAMSeq2Seq:
 
         tf.summary.scalar('loss/train', tf.minimum(tf.constant(1000.0), self._loss))
 
+        # self._reinforce_loss = A
+
     def _add_train(self):
         if self.debug:
             print(" ..adding training operators")
@@ -135,6 +141,11 @@ class NAMSeq2Seq:
             # print(grads_and_vars)
             self._grads_and_vars = grads_and_vars
             self._train_op = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
+
+    def _add_policy_gradient_train(self):
+        with tf.name_scope("policy_gradient_optimiser"):
+            optimizer = tf.train.AdamOptimizer(self.learning_rate)
+            self._train_op = optimizer.minimize(self._reinforce_loss)
 
     @staticmethod
     def grad_add_noise(grads_and_vars, scale):
@@ -176,6 +187,7 @@ class NAMSeq2Seq:
         self._summaries = tf.summary.merge_all()
         if self.debug:
             print('Building complete')
+        self._add_reinforce_loss()
 
     def run_train_step(self, sess, data_batch: SeqDataset, epoch):
 
@@ -289,3 +301,62 @@ class NAMSeq2Seq:
         # print("Stack output:\n{}".format(stack_output))
         result = np.argmax(stack_output, 0)
         return result
+
+    def _add_reinforce_loss(self):
+        self.traces = self.interpreter.execute(self.train_num_steps)
+        # pull out stacks
+        self.data_stacks = [state.data_stack for state in self.traces]
+        self.data_stack_pointers = [state.data_stack_pointer for state in self.traces]
+
+        self.reinforce_loss = ReinforceLoss(self.traces[-1], self.interpreter)
+
+        # TODO: experiment with initial learning rate
+        optimizer = tf.train.AdamOptimizer(self.learning_rate)
+
+        # We want to maximise the loss, hence multiply by -1
+        self.train_op = optimizer.minimize(-1 * self.reinforce_loss.loss)
+
+    def evaluate_2(self, sess, input_seq, debug=False):
+
+        self.interpreter.load_stack(input_seq, 0)
+
+        self.reinforce_loss.load_action_and_rewards([1],[1])
+        feed_in = self.reinforce_loss.current_feed_dict()
+
+        data_stacks_, data_stack_pointers_, action_prob_, log_action_prob_,  reinforce_loss_, train_op_ = \
+            sess.run([self.data_stacks,
+                      self.data_stack_pointers,
+                      self.reinforce_loss.action_prob,
+                      self.reinforce_loss.log_action_prob,
+                      self.reinforce_loss.loss,
+                      self.train_op],
+                     feed_in)
+
+        print("Action probability: {}".format(action_prob_))
+        print("Log action probability: {}".format(log_action_prob_))
+        print("Reinforce loss: {}".format(reinforce_loss_))
+
+        # print("Data stack")
+        # for i, (data_stack_ , data_stack_pointer_) in enumerate(zip(data_stacks_, data_stack_pointers_)):
+        #     print(i)
+        #     print(data_stack_pointer_.squeeze())
+        #     print(data_stack_.squeeze())
+
+
+
+        # argmax everything !!
+        # pointer = np.argmax(data_stack_pointer[:, 0])
+        # print("pointer: {}".format(pointer))
+        # stack_output = data_stack[:, 0:pointer + 1, 0]
+        # print("Stack output:\n{}".format(stack_output))
+        # result = np.argmax(stack_output, 0)
+
+        return action_prob_
+
+    def update_policy(self, sess, input_seq, action, total_reward):
+        self.interpreter.load_stack(input_seq, 0)
+
+        self.reinforce_loss.load_action_and_rewards([action], [total_reward])
+        feed_in = self.reinforce_loss.current_feed_dict()
+
+        sess.run(self.train_op, feed_in)

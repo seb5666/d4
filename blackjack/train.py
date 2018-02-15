@@ -1,7 +1,10 @@
 import gym
 import numpy as np
-from blackjack.policies.simple_policy import SimplePolicy
+import tensorflow as tf
+import matplotlib.pyplot as plt
 
+from blackjack.policies.simple_policy import SimplePolicy
+from blackjack.policies.policy_utils import visualize_policy
 
 # generate episode in env iusing the current policy
 def generate_episode(env, policy):
@@ -13,7 +16,7 @@ def generate_episode(env, policy):
 
     done = False
     while not(done):
-        action = policy(current_state)
+        action = policy(state=current_state)
         next_state, reward, done, _ = env.step(action)
 
         states.append(current_state)
@@ -31,17 +34,61 @@ def generate_episode(env, policy):
 def compute_returns(rewards):
     return np.full(len(rewards), fill_value=rewards[-1])
 
-
-
 env = gym.make('Blackjack-v0')
 
-policy = SimplePolicy(sketch_path='policies/sketches/simple_policy.d4')
 
-while True:
-    (states, actions, rewards) = generate_episode(env, policy)
-    for s, a, r in zip(states, actions, rewards):
-        print(s,a,r)
-    returns = compute_returns(rewards)
-    print(returns)
-    break
-    update_policy(policy, episode)
+show_plots = True
+
+with tf.Session() as sess:
+    policy = SimplePolicy(sess=sess, sketch_path='policies/sketches/simple_policy.d4')
+
+    print("Initializing global tf variables...")
+    sess.run(tf.global_variables_initializer())
+
+    tvars = tf.trainable_variables()
+    tvars_ = sess.run(tvars)
+    print("Initial parameters: {}".format(np.array(tvars_).squeeze()))
+
+
+    print("Generating episodes...")
+    iteration = 0
+    max_iters = 10000
+
+    if show_plots:
+        visualize_policy(policy)
+
+    R = []
+    average_rewards = []
+    while True and iteration < max_iters:
+        iteration += 1
+        (states, actions, rewards) = generate_episode(env, policy)
+        returns = compute_returns(rewards)
+        for state, action, total_return in zip(states, actions, returns):
+            policy.update_policy(state, action, total_return)
+
+        R.append(rewards[-1])
+        if len(R) > 100:
+            R = R[1:]
+
+        if iteration % 1000 == 0:
+            average_return = 0
+            sim_length = 100
+            for j in range(sim_length):
+                (states, actions, rewards) = generate_episode(env, policy)
+                returns = compute_returns(rewards)
+                average_return += returns[0]
+            average_return /= sim_length
+            average_rewards.append(average_return)
+            print("Average return after {} iterations over the last 100 episodes: {}".format(iteration, average_return))
+
+    tvars = tf.trainable_variables()
+    tvars_ = sess.run(tvars)
+    print("Final parameters: {}".format(np.array(tvars_).squeeze()))
+
+    print("Average rewards:\n{}".format(average_rewards))
+    
+    if show_plots:
+        visualize_policy(policy)
+        plt.figure()
+        plt.plot(np.arange(len(average_rewards)), average_rewards)
+        plt.show()
