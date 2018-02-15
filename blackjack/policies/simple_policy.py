@@ -20,21 +20,28 @@ class SimplePolicy(Policy):
         player_sum = state[0]
         return np.array([player_sum])
 
-    def __call__(self, state, **kwargs):
-        input_seq = self._player_sums(state)
+    def __call__(self, state, argmax_stack = False, **kwargs):
 
+        input_seq = self._player_sums(state)
         if self.debug:
             print("Evaluating policy on input sequence {}...".format(input_seq))
 
-        probabilities = self.blackjack_machine.run_train_step(sess=self.sess, input_seq=input_seq)
+        if not(argmax_stack):
 
-        sample_action = np.argmax(np.random.multinomial(1, probabilities))
+            probabilities = self.blackjack_machine.run_train_step(sess=self.sess, input_seq=input_seq)
 
-        if self.debug:
-            print("Probabilities: {}".format(probabilities))
-            print("Sampled action: {}".format(sample_action))
+            sample_action = np.argmax(np.random.multinomial(1, probabilities))
 
-        return sample_action
+            if self.debug:
+                print("Probabilities: {}".format(probabilities))
+                print("Sampled action: {}".format(sample_action))
+
+            return sample_action
+
+        else:
+            action = self.blackjack_machine.run_eval_step(sess=self.sess, input_seq=input_seq)
+            return action
+
 
     # Perform a single step of optimisation in the REINFORCE algorithm
     def update_policy(self, state, action, total_reward):

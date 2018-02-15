@@ -2,6 +2,7 @@ from d4.dsm.loss import ReinforceLoss
 from d4.interpreter import SimpleInterpreter
 
 import tensorflow as tf
+import numpy as np
 
 class BlackjackMachine:
 
@@ -72,3 +73,27 @@ class BlackjackMachine:
         probabilities = final_stack_[:2, 0, 0]  # Only 2 actions (hit/stick)
         return probabilities
 
+    def run_eval_step(self, sess, input_seq, debug=False):
+
+        self.interpreter.test_time_load_stack(input_seq, 0)
+
+        #run da thing
+        test_trace, _ = self.interpreter.execute_test_time(sess,
+                                                           self.num_steps,
+                                                           use_argmax_pointers=True,
+                                                           use_argmax_stacks=True,
+                                                           debug=debug,
+                                                           save_only_last_step=True)
+
+        # pull out stacks
+        final_state = test_trace[-1]
+        data_stacks = final_state[self.interpreter.test_time_data_stack]
+        data_stack_pointers = final_state[self.interpreter.test_time_data_stack_pointer]
+
+        # argmax everything !!
+        # print("data_stack_pointer: {}".format(data_stack_pointers))
+        pointer = np.argmax(data_stack_pointers[:, 0])
+
+        probabilities = data_stacks[:, 0:pointer + 1, 0].squeeze()
+        result = np.argmax(probabilities, 0)
+        return result
