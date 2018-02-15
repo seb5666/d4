@@ -44,7 +44,7 @@ if __name__ == "__main__":
     show_plots = True
 
     with tf.Session() as sess:
-        policy = SimplePolicy(sess=sess, sketch_path='policies/sketches/simple_policy.d4')
+        policy = SimplePolicy(sess=sess, sketch_path='blackjack/policies/sketches/simple_policy.d4')
 
         print("Initializing global tf variables...")
         sess.run(tf.global_variables_initializer())
